@@ -2,7 +2,7 @@
 This chapter presents an overview of state of the art approaches to object recognition, while focusing on two families of architectures, which are motivated quite differently. Object recognition techniques based on convolutional neural networks (\emph{CNN}s) currently dominate the field, achieving state of the art performance on many datasets \cite{Diba2017WeaklySC,7506134}. CNNs however, are only loosely based on biological neurons. Spiking neural networks (\emph{SNN}s) on the other hand, try to mimic the physical properties of neurons more closely and therefore constitute biologically more plausible models \cite{Schofield20180027}. Generally speaking, CNNs may be regarded as a more engineering-based approach (or top-down), while SNNs are motivated by results from neuroscience and biology (bottom-up approach).
 \section{Deep Learning for Object Recognition}
 Recent years have seen a surge of interest in deep learning methods, especially in the field of computer vision. While the theory behind many deep learning methods has been around for many years, their recent success is mainly due to the availability of large labelled data sets and highly parallel computing powered by GPUs. One of the specific tasks, deep learning based methods excel at, is object recognition: the identification of objects in images or videos (cf. figure \ref{fig:cifar10}). The significantly better performance of deep neural networks over traditional machine learning methods can be explained by: (i) their hierarchical topology of parameterized non-linear processing units is a fundamentally better probabilistic model and prior for real world data leading to better generalization and (ii) they automatically find good features to extract based on the training data.
-\begin{figure}[htpb]
+\begin{figure}
     \centering
 \begin{tikzpicture}
   \node[anchor=south west,inner sep=0] at (0,0) {\includegraphics{figures/cifar10.png}};
@@ -16,7 +16,7 @@ Recent years have seen a surge of interest in deep learning methods, especially 
   \node[anchor=west] at (-2.5,2.45) {Horse};
   \node[anchor=west] at (-2.5,1.5) {Ship};
   \node[anchor=west] at (-2.5,.55) {Truck};
-\end{tikzpicture}
+\end{tikzpicture}\noindent
 \caption[CIFAR-10 classes and sample images]{Sample images from the CIFAR-10 \cite{cifar10} dataset and their corresponding classes. CIFAR-10 consists of 6000 images at 32 by 32 pixels for each of the 10 classes. Datasets such as this are often used as a benchmark to evaluate the performance of novel deep learning architectures for image recognition.}\label{fig:cifar10}
 \end{figure}
 The potential applications for a robust image classification system are myriad and range from automated driving and image-based diagnosis to robot vision and many more. As deep learning is currently the best candidate for such a system, it is well worth exploring.
@@ -26,16 +26,64 @@ CNN architectures are generally distinguished by their use of specific types of 
 Each neuron in a fully connected layer is connected to all the activations in the previous layer. The activation of a single neuron as the basic non-linear computational unit is calculated by applying a nonlinearity to the weighted sum of its inputs plus a bias.
 \begin{align}
     h = g\qty(\sum_i w_i x_i +b)
+    \label{eq:neuron}
 \end{align}
-With the nonlinear function $g$, the learnable weights $w_i$, the input activations $x_i$ and the learnable bias $b$. In the case of a fully connected layer, the activation can be computed using matrix multiplication. In tensor notation this may be written as:
+\begin{figure}
+    \centering
+\begin{tikzpicture}
+  \node[anchor=south west,inner sep=0] at (0,0) {\includegraphics[scale=.5]{figures/Neuron.pdf}};
+  \node[anchor=west] at (.2,1.8) {$w_1$};
+  \node[anchor=west] at (1.3,1.8) {$w_2$};
+  \node[anchor=west] at (2.3,1.8) {$w_3$};
+  \node[anchor=west] at (4.3,2.6) {$b$};
+  \node[anchor=west] at (.2,-.5) {$x_1$};
+  \node[anchor=west] at (1.75,-.5) {$x_2$};
+  \node[anchor=west] at (3.3,-.5) {$x_3$};
+  \node[anchor=west] at (1.3,4.2) {$h$};
+\end{tikzpicture}
+\caption[Illustration of an artificial neuron with three input connections]{Illustration of an artificial neuron with three input connections. The neuron receives the activations of three lower level neurons weighted by the learnable $w_i$ as well as a learnable bias $b$. After applying the nonlinearity, the neuron outputs its activation $h$ as in equation  \ref{eq:neuron}}\label{fig:neuron}
+\end{figure}\noindent
+With the nonlinear function $g$, the learnable weights $w_i$, the input activations $x_i$ and the learnable bias $b$. In the case of a fully connected layer, the activations can be computed using matrix multiplication. In tensor notation this may be written as:
 \begin{align}
     \vb{h_l} = g_l\qty(\vb{W^T_l\vb{h_{l-1}}}+\vb{b_l}).
 \end{align}
-With $N_l$ denoting the number of neurons in layer $l$, $\vb{W_l}$ is an $N_{l-1}\cp N_l$ dimensional weight matrix, $b_l$ an $N_l$ dimensional vector and $g_l$ the $N_l$ dimensional vectorized activation function of layer $l$
+With $N_l$ denoting the number of neurons in layer $l$, $\vb{W_l}$ is an $N_{l-1}\cp N_l$ dimensional weight matrix, $b_l$ an $N_l$ dimensional vector and $g_l$ the $N_l$ dimensional vectorized activation function of layer $l$.
 \begin{align}
     g_l(\vb{x}) = \qty(g_l(x_1),...,g_l(x_{N_l}))^T
 \end{align}
+\begin{figure}
+    \centering
+\begin{tikzpicture}
+  \node[anchor=south west,inner sep=0] at (0,0) {\includegraphics[scale=.5]{figures/FullyConnected.pdf}};
+  \node[anchor=west] at (.2,-.5) {$h_0$};
+  \node[anchor=west] at (2.3,-.5) {$h_1$};
+  \node[anchor=west] at (4.3,-.5) {$h_2$};
+\end{tikzpicture}
+\caption[Illustration of fully connected layers]{Illustration of fully connected layers. An input layer $h_0$ with two fully connected layers on top. As the layers are of the same size in this example, the number of trainable weights between two layers scales as $\order{N^2}$ with $N$ the number of neurons in each layer. Note that the biases are not explicitly shown.}\label{fig:fully-connected}
+\end{figure}\noindent
 \subsubsection{Convolutional Layer}
+In a convolutional layer, the activities of the input layer are convolved with a number of trainable kernels so as to create the same number of feature maps. In computer vision it is common to view the layer's neurons as two-dimensional grids of neurons arranged in channels. These grids correspond to pixels and color channels in the case of the input layer or activities (feature maps) resulting from convolution with different kernels in the case of intermediate convolutional layers. For a feature kernel $F_{m,n}^l$ of size $M_l\cp M_l$ and an input layer $l-1$ with $N_{l-1}\cp N_{l-1}$ neurons, the corresponding feature map activities of layer $l$ are computed as
+\begin{align}
+    h^l_{m,n} = g_l\qty(\sum_{m'}^{M_l}\sum_{n'}^{M_l}F_{m',n'}^l h_{m+m',n+n'}^l+b_l).
+\end{align}
+This is the same as a discrete cross correlation.
+\begin{align}
+    (f \star g)[n]\ \stackrel{\mathrm{def}}{=} \sum_{m=-\infty}^{\infty} f^*[m]\ g[m+n]
+\end{align}
+Where $f^*$ is the complex conjugate of the discrete function $f$. Strictly speaking, the use of the term \emph{convolution} in neural network literature is therefore a misnomer, as either the filter or the image (or feature map) would have to be flipped before the operation. However, as the weights of the kernel are actually learned by the network, the result will be the same. For a 2D single channel input layer of size $N_0\cp N_0$, the number of trainable parameters for a convolutional layer with a single $M\cp M$ filter is $M^2 + 1$ for the kernel weights and bias respectively, compared to $N_0^2N_1^2+N_1^2$ for a fully connected layer of size $N_1\cp N_1$. The sparsity in learnable parameters in convolutional layers compared to fully connected layers (cf. fig \ref{fig:convolutional}) is often referred to as \emph{weight sharing} (an entire channel \emph{shares} the weights of a single kernel).
+\begin{figure}
+    \centering
+\begin{tikzpicture}
+  \node[anchor=south west,inner sep=0] at (0,0) {\includegraphics[scale=.5]{figures/Convolutional.pdf}};
+  \node[anchor=west] at (.2,-.5) {$h_0$};
+  \node[anchor=west] at (2.3,-.5) {$h_1$};
+  \node[anchor=west] at (4.3,-.5) {$h_2$};
+  \node[anchor=west] at (7.5,-.5) {$h'_0$};
+  \node[anchor=west] at (9.6,-.5) {$h'_1$};
+  \node[anchor=west] at (11.6,-.5) {$h'_2$};
+\end{tikzpicture}
+\caption[Illustration of convolutional layers]{Illustration of fully connected layers compared to convolutional layers, making apparent the sparsity of the latter relative to the former. The convolutional layers $h'_1$ and $h'_2$ perform a 1D convolution with a filter of size $3$. Note that due to weight sharing the number of weight parameters between $h'_0$ and $h'_1$ is actually only $3$.}\label{fig:convolutional}
+\end{figure}\noindent
 \subsubsection{Pooling Layer}
 \subsection{Spiking Neural Networks}
 \section{Limits of Deep Learning Approaches}
