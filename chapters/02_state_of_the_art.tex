@@ -81,7 +81,7 @@ In the case of multiple input channels, the kernels actually extend through the 
     h^l_{k,m,n} = g_l\qty(\sum_{k'}^{K_{l-1}}\sum_{m'}^{M_l}\sum_{n'}^{M_l}F_{k,k',m',n'}^l h_{k',m+m',n+n'}^l+b_{l,k}).
     \label{eq:conv-multilayer}
 \end{align}
-With $K_l$ the number of channels in layer $l$. Most deep learning frameworks offer additional hyperparameters for convolutional layers, like stride and zero padding. Zero padding adds additional rows and columns of zero-activities around the input layer channels, effectively allowing the output feature maps to have the same size (that is height and width, depth is determined by the number of kernels) as the unpadded input layer. Stride on the other hand defines the integer value by which the kernels are moved during convolution. This can be used to keep the receptive fields from overlapping too much. Equation \ref{eq:conv-multilayer} is easily extended to take the stride $S_l$ of layer $l$ into consideration.
+With $K_l$ the number of channels in layer $l$. Most deep learning frameworks offer additional hyperparameters for convolutional layers, like stride and zero padding. Zero padding adds additional rows and columns of zero-activities around the input layer channels, effectively allowing the output feature maps to have the same size (i.e. height and width, depth is determined by the number of kernels) as the unpadded input layer. Stride on the other hand defines the integer value by which the kernels are moved during convolution. This can be used to keep the receptive fields from overlapping too much. Equation \ref{eq:conv-multilayer} is easily extended to take the stride $S_l$ of layer $l$ into consideration.
 \begin{align}
     h^l_{k,m,n} = g_l\qty(\sum_{k'}^{K_{l-1}}\sum_{m'}^{M_l}\sum_{n'}^{M_l}F_{k,k',m',n'}^l h_{k',S_l m+m',S_l n+n'}^l+b_{l,k})
 \end{align}
@@ -114,17 +114,22 @@ The spatial dimension of this feature map can be computed as a function of the i
 \caption[Illustration of receptive field in 2D convolutional layer]{Illustration of a 2D convolution with a kernel of size $M_l\cp M_l$. As the resulting feature map $h_1$ has a lower resolution than $h_0$, applying a convolutional layer is sometimes also referred to as downsampling. For an input layer with $N\cp N$ neurons, the feature map's size is computed as $(N-M_l+1)\cp (N-M_l+1)$. The area comprised of the input neurons that are used to calculate the activity of a feature map neuron (highlighted neurons in layer $h_0$) are known as that neuron's \emph{receptive field}.}\label{fig:2dconvolution}
 \end{figure}\noindent
 \subsubsection{Pooling Layer}
-Pooling is a form of sub- or downsampling using a sliding window similar to convolution. Most often the stride is set in a way, such that the windows do not overlap. An operator is applied to each window, which selects a subset of neurons. Common operators are maximum, average or $L_2$-Norm. The pooling is applied to each channel and leads to a reduction in the spatial dimensions. This reduction corresponds to a loss of information or reduction in parameters and therefore reduces the amount of computation required as well as the possibility of overfitting.
+Pooling is a form of sub- or downsampling using a sliding window similar to convolution. Most often the stride is set equal to the window size - that way the windows don't overlap. An operator is applied to each window, which selects a single neuron. Common operators are maximum, average or $L_2$-Norm. The pooling is applied to each channel and leads to a reduction in the spatial dimensions. This reduction corresponds to a loss of information or reduction in degrees of freedom and therefore reduces the amount of computation required as well as the possibility of overfitting. The choice of pooling operator has a profound effect on the generalization and speed of convergence of CNNs and recently maximum pooling has proven to be the most successful method \cite{pooling1,pooling2}.
 \begin{figure}
     \centering
 \begin{tikzpicture}
   \node[anchor=south west,inner sep=0] at (0,0) {\includegraphics[scale=.5]{figures/Pooling.pdf}};
-  \node[anchor=west] at (.4,4.5) {$M_l$};
-  \node[anchor=west] at (-1,3.3) {$M_l$};
   \node[anchor=west] at (1.8,-.5) {$h_0$};
   \node[anchor=west] at (5.8,-.5) {$h_1$};
+  \draw [decorate,decoration={brace,amplitude=5pt},xshift=-4pt,yshift=0pt]
+(-0.1,3.1) -- (-0.1,4.05) node [black,midway,xshift=-0.6cm] {$M_l$};
+  \draw [decorate,decoration={brace,amplitude=5pt},xshift=-4pt,yshift=0pt]
+(.15,4.3) -- (1.2,4.3) node [anchor=south,midway,yshift=1] 
+{$M_l$};
 \end{tikzpicture}
-\caption[Illustration of a pooling layer]{Illustration of a pooling layer.}\label{fig:pooling}
+\caption[Illustration of a pooling layer]{Illustration of a pooling layer. The pooling uses a $2\cp 2$ window with stride 2 to segment the input layer into non-overlapping tiles. An operator (e.g. maximum) is applied to each $2\cp 2$ segment to select a single neuron (the highlighted neurons in layer $h_0$). The activities of the selected neurons are aranged in a new layer $h_1$ of size $\frac{N_{l-1}}{M_l}\cp \frac{N_{l-1}}{M_l}$ with $M_{l}\cp M_{l}$ and $N_{l-1}\cp N_{l-1}$ the size of the window the input layer respectively.}\label{fig:pooling}
 \end{figure}\noindent
+\subsubsection{CNN Architecture}
+The key idea behind the combination of these three types of layers is, that essential visual features such as edges and corners within a convolutional layer's receptive field are combined to form higher level features such as shapes by subsequent convolutional layers. In between these convolutions, pooling operations select the most active features and reduce the computational size of the network. The convolutional kernels are effectively trainable feature detectors and due to weight sharing and pooling naturally incorporate a measure of translational invariance. This hierarchical organization of receptive fields is similar in structure to the mammalian visual cortex \cite{cat-brain} and sometimes CNNs are seen to be directly derived from it \cite{Fukushima1980,lecun2015deep}. More often than not however, the use of convolutional layers with weight sharing is motivated as a means to achieve translational equivariance and faster computation compared to fully connected layers \cite{Goodfellow-et-al-2016,7298668,7298594}. Finally, fully connected layers are placed on top of the network in order to perform high level inference. For object recognition, the output of these layers are the class probabilities.
 \subsection{Spiking Neural Networks}
 \section{Limits of Deep Learning Approaches}
