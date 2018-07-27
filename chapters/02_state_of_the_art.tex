@@ -74,7 +74,7 @@ This is the same as a two-dimensional discrete cross correlation.
 \end{align}
 Where $f^*$ is the complex conjugate of the discrete function $f$. Strictly speaking, the use of the term \emph{convolution} in neural network literature is therefore a misnomer, as either the filter or the image (or feature map) would have to be flipped before the operation. However, as the weights of the kernel are actually learned by the network, the result will be the same. 
 
-For a 2D single channel input layer of size $N_0\cp N_0$, the number of trainable parameters for a convolutional layer with a single $M\cp M$ filter is $M^2 + 1$ for the kernel weights and bias respectively, compared to $N_0^2N_1^2+N_1^2$ for a fully connected layer of size $N_1\cp N_1$. The sparsity in learnable parameters in convolutional layers compared to fully connected layers (cf. fig \ref{fig:convolutional}) is often referred to as \emph{weight sharing} (an entire channel \emph{shares} the weights of a single kernel).
+For a 2D single channel input layer of size $N_0\cp N_0$, the number of trainable parameters for a convolutional layer with a single $M\cp M$ filter is $M^2 + 1$ for the kernel weights and bias respectively, compared to $N_0^2N_1^2+N_1^2$ for a fully connected layer of size $N_1\cp N_1$. The sparsity in learnable parameters in convolutional layers compared to fully connected layers (cf. figure \ref{fig:convolutional}) is often referred to as \emph{weight sharing} (an entire channel \emph{shares} the weights of a single kernel).
 
 In the case of multiple input channels, the kernels actually extend through the whole depth of the input layer's volume. Equation \ref{eq:2dconv} can be extended to accommodate multiple input channels and feature kernels. The activities of feature map $k$ in layer $l$ are then computed as
 \begin{align}
@@ -127,23 +127,39 @@ Pooling is a form of sub- or downsampling using a sliding window similar to conv
 (.15,4.3) -- (1.2,4.3) node [anchor=south,midway,yshift=1] 
 {$M_l$};
 \end{tikzpicture}
-\caption[Illustration of a pooling layer]{Illustration of a pooling layer. The pooling uses a $2\cp 2$ window with stride 2 to segment the input layer into non-overlapping tiles. An operator (e.g. maximum) is applied to each $2\cp 2$ segment to select a single neuron (the highlighted neurons in layer $h_0$). The activities of the selected neurons are aranged in a new layer $h_1$ of size $\frac{N_{l-1}}{M_l}\cp \frac{N_{l-1}}{M_l}$ with $M_{l}\cp M_{l}$ and $N_{l-1}\cp N_{l-1}$ the size of the window the input layer respectively.}\label{fig:pooling}
+\caption[Illustration of a pooling layer]{Illustration of a pooling layer. The pooling uses a $2\cp 2$ window with stride 2 to segment the input layer into non-overlapping tiles. An operator (e.g. maximum) is applied to each $2\cp 2$ segment to select a single neuron (the highlighted neurons in layer $h_0$). The activities of the selected neurons are aranged in a new layer $h_1$ of size $\frac{N_{l-1}}{M_l}\cp \frac{N_{l-1}}{M_l}$ with $M_{l}\cp M_{l}$ and $N_{l-1}\cp N_{l-1}$ the size of the window and the input layer respectively.}\label{fig:pooling}
 \end{figure}\noindent
 \subsubsection{CNN Architecture}
-The key idea behind the combination of these three types of layers is, that essential visual features such as edges and corners within a convolutional layer's receptive field are combined to form higher level features such as shapes by subsequent convolutional layers. In between these convolutions, pooling operations select the most salient features and reduce the computational size of the network. The convolutional kernels are effectively trainable feature detectors and due to weight sharing and pooling naturally incorporate a measure of translational invariance. This hierarchical organization of receptive fields is similar in structure to the mammalian visual cortex \cite{cat-brain} and sometimes CNNs are seen to be directly derived from it \cite{Fukushima1980,lecun2015deep}. More often than not however, the use of convolutional layers with weight sharing is motivated as a means to achieve translational equivariance and faster computation compared to fully connected layers \cite{Goodfellow-et-al-2016,7298668,7298594}. Finally, fully connected layers are placed on top of the network in order to perform high level inference (cf. figure \ref{fig:cnn-arch}). A CNN's architecture is therefore largely defined by its \emph{hyperparameters}: the number and types of layers and their connections. The number of stacked layers is often referred to as the network's depth. Current networks often employ multiple paths and skip connections (i.e. a layer's output not only flows to its direct descendent, but skips several layers) allowing for topologies several hundred layers deep, hence \emph{deep learning} \cite{huang2017densely,szegedy2017inception,xie2017aggregated,wang2015towards}.
+The key idea behind the combination of these three types of layers is, that essential visual features such as edges and corners within a convolutional layer's receptive field are combined to form higher level features such as shapes by subsequent convolutional layers. In between these convolutions, pooling operations select the most salient features and reduce the computational size of the network. The convolutional kernels are effectively trainable feature detectors and due to weight sharing and pooling naturally incorporate a measure of translational invariance. This hierarchical organization of receptive fields is similar in structure to the mammalian visual cortex \cite{cat-brain} and sometimes CNNs are seen to be directly derived from it \cite{Fukushima1980,lecun2015deep}. More often than not however, the use of convolutional layers with weight sharing is motivated as a means to achieve translational equivariance and faster computation compared to fully connected layers \cite{Goodfellow-et-al-2016,7298668,7298594}. Finally, fully connected layers are placed on top of the network in order to perform high level inference (cf. figure \ref{fig:cnn-arch}). A CNN's architecture is therefore largely defined by its \emph{hyperparameters}: the number and types of layers and their connections. The number of stacked layers is referred to as the network's depth. Current networks often employ multiple paths and skip connections (i.e. a layer's output not only flows to its direct descendent, but skips several layers) allowing for topologies several hundred layers deep, hence \emph{deep learning} \cite{huang2017densely,szegedy2017inception,xie2017aggregated,wang2015towards}.
 
 \begin{figure}
     \centering
 \def\svgwidth{\textwidth}
 \import{figures/}{AlexNet.pdf_tex}
 %\input{figures/AlexNet.tex}
-\caption[Illustration of a typical CNN architecture]{Illustration of a typical CNN architecture for object recognition. Note that the feature maps of the first convolutional layer extracted elementary features like edges. The last layer's neurons correspond to the trained classes, while the output neuron with the highest probability is picked as the network's prediction (highlighted in red).}\label{fig:cnn-arch}
+\caption[Illustration of a typical CNN architecture]{Illustration of a typical CNN architecture for object recognition. Note that the feature maps of the first convolutional layer extracted elementary features like edges. The last layer's neurons correspond to the trained classes, while the output neuron with the highest probability is picked as the network's prediction during inference (highlighted in red).}\label{fig:cnn-arch}
 \end{figure}\noindent
 \subsubsection{Training}
-For object recognition, the output of the final layers are the class probabilities. This is achieved by applying a normalizing activation function to the the output of the last layer, such as the \emph{softmax} function. In case of the softmax function, the network's prediction $y_k\qty(\vb{a})$ for the class $k$ thus becomes
+For object recognition, the output of the final layers are the class probabilities. This is achieved by applying a normalizing activation function to the the output of the last layer, such as the \emph{softmax} function. In case of the softmax function, the network's output $y_k\qty(\vb{x})$ for the class $k$ given input sample $\vb{x}$ thus becomes
 \begin{align}
-    y_k\qty(\vb{a}) = \frac{\exp(a_k)}{\sum_{k'}^K \exp(a_{k'})}.
+    y_k\qty(\vb{x}) = \frac{\exp(a_k)}{\sum_{k'=1}^K \exp(a_{k'})}.
 \end{align}
-With $\vb{a}=(a_1,...,a_K)^T$ the linear activities of the last layer's neurons (in machine learning literature often referred to as \emph{logits}) and $K$ the number of classes.
+With $\vb{a}=(a_1,...,a_K)^T$ the linear activities of the last layer's neurons (in machine learning literature often referred to as \emph{logits}) and $K$ the number of classes. Using one-hot coding for the target class
+\begin{align}
+    \vb{t} = (t_1,...,t_k,..,t_K)^T = (0,...,1,...,0)^T,
+\end{align}
+the probabilistic model can be defined as a function of the neural network.
+\begin{align}
+    P\qty(\vb{t}\mid \vb{x},\vb*{\theta}) = \prod_{k=1}^K y_k\qty(\vb{x})^{t_k}
+\end{align}
+With $\vb*{\theta}=(\vb{W}, \vb{b})$ the set of the network's trainable parameters. The model's likelihood is then given by
+\begin{align}
+    P\qty(\vb{T}\mid \vb{X}, \vb*{\theta}) &= \prod_n P(\vb{t_n}\mid\vb{x_n},\vb*{\theta}).
+\end{align}
+Where the index $n$ denotes $n$th training sample and target class (also known as label). The negative logarithm of the likelihood, called the negative \emph{log-likelihod} defines the classifier's error function $E_{\mathrm{ML}}$.
+\begin{align}
+    E_{\mathrm{ML}}\qty(\vb*{\theta}) &= -\log(P\qty(\vb{T}\mid \vb{X}, \vb*{\theta})) = -\sum_n \log P(\vb{t_n}\mid\vb{x_n},\vb*{\theta}) \\ &= -\sum_n \sum_{k=1}^K t_{n,k}\log(y_{k}\qty(\vb{x_n})) \label{eq:cross-entropy}
+\end{align}
+The error function resulting from the softmax activation function specifically is referred to as the \emph{cross entropy} (equation \ref{eq:cross-entropy}). Now the network's parameter may be trained by minimizing its classification error w.r.t. $\vb*{\theta}$. As the logarithm is a convex function and the error function is the \emph{negative} log-likelihood, this is equivalent to a maximum likelihood estimate.
 \subsection{Spiking Neural Networks}
 \section{Limits of Deep Learning Approaches}
