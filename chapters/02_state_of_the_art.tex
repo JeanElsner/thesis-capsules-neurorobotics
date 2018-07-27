@@ -16,9 +16,9 @@ Recent years have seen a surge of interest in deep learning methods, especially 
   \node[anchor=west] at (-2.5,2.45) {Horse};
   \node[anchor=west] at (-2.5,1.5) {Ship};
   \node[anchor=west] at (-2.5,.55) {Truck};
-\end{tikzpicture}\noindent
+\end{tikzpicture}
 \caption[CIFAR-10 classes and sample images]{Sample images from the CIFAR-10 \cite{cifar10} dataset and their corresponding classes. CIFAR-10 consists of 6000 images at 32 by 32 pixels for each of the 10 classes. Datasets such as this are often used as a benchmark to evaluate the performance of novel deep learning architectures for image recognition. This is done by using a subset of the dataset to train the neural network. The remainder of the images, which the network has not seen before, are used to evaluate the accuracy.}\label{fig:cifar10}
-\end{figure}
+\end{figure}\noindent
 The potential applications for a robust image classification system are myriad and range from automated driving and image-based diagnosis to robot vision and many more. As deep learning is currently the best candidate for such a system, it is well worth exploring.
 \subsection{Convolutional Neural Networks}
 CNN architectures are generally distinguished by their use of specific types of neuron-layers, namely, convolutional, pooling and fully connected layers. While wildly different network topologies may be found in literature, characterized by their use of skip connections, number of layers, number of paths etc., CNNs can always be reduced to these three basic layer types.
@@ -131,12 +131,10 @@ Pooling is a form of sub- or downsampling using a sliding window similar to conv
 \end{figure}\noindent
 \subsubsection{CNN Architecture}
 The key idea behind the combination of these three types of layers is, that essential visual features such as edges and corners within a convolutional layer's receptive field are combined to form higher level features such as shapes by subsequent convolutional layers. In between these convolutions, pooling operations select the most salient features and reduce the computational size of the network. The convolutional kernels are effectively trainable feature detectors and due to weight sharing and pooling naturally incorporate a measure of translational invariance. This hierarchical organization of receptive fields is similar in structure to the mammalian visual cortex \cite{cat-brain} and sometimes CNNs are seen to be directly derived from it \cite{Fukushima1980,lecun2015deep}. More often than not however, the use of convolutional layers with weight sharing is motivated as a means to achieve translational equivariance and faster computation compared to fully connected layers \cite{Goodfellow-et-al-2016,7298668,7298594}. Finally, fully connected layers are placed on top of the network in order to perform high level inference (cf. figure \ref{fig:cnn-arch}). A CNN's architecture is therefore largely defined by its \emph{hyperparameters}: the number and types of layers and their connections. The number of stacked layers is referred to as the network's depth. Current networks often employ multiple paths and skip connections (i.e. a layer's output not only flows to its direct descendent, but skips several layers) allowing for topologies several hundred layers deep, hence \emph{deep learning} \cite{huang2017densely,szegedy2017inception,xie2017aggregated,wang2015towards}.
-
 \begin{figure}
     \centering
 \def\svgwidth{\textwidth}
 \import{figures/}{AlexNet.pdf_tex}
-%\input{figures/AlexNet.tex}
 \caption[Illustration of a typical CNN architecture]{Illustration of a typical CNN architecture for object recognition. Note that the feature maps of the first convolutional layer extracted elementary features like edges. The last layer's neurons correspond to the trained classes, while the output neuron with the highest probability is picked as the network's prediction during inference (highlighted in red).}\label{fig:cnn-arch}
 \end{figure}\noindent
 \subsubsection{Training}
@@ -160,6 +158,30 @@ Where the index $n$ denotes $n$th training sample and target class (also known a
 \begin{align}
     E_{\mathrm{ML}}\qty(\vb*{\theta}) &= -\log(P\qty(\vb{T}\mid \vb{X}, \vb*{\theta})) = -\sum_n \log P(\vb{t_n}\mid\vb{x_n},\vb*{\theta}) \\ &= -\sum_n \sum_{k=1}^K t_{n,k}\log(y_{k}\qty(\vb{x_n})) \label{eq:cross-entropy}
 \end{align}
-The error function resulting from the softmax activation function specifically is referred to as the \emph{cross entropy} (equation \ref{eq:cross-entropy}). Now the network's parameter may be trained by minimizing its classification error w.r.t. $\vb*{\theta}$. As the logarithm is a convex function and the error function is the \emph{negative} log-likelihood, this is equivalent to a maximum likelihood estimate.
+The error function resulting from the softmax activation function specifically is referred to as the \emph{cross entropy} (equation \ref{eq:cross-entropy}). Now the network's parameters may be trained by minimizing its classification error w.r.t. $\vb*{\theta}$. As the logarithm is a convex function and the error function is the \emph{negative} log-likelihood, this is equivalent to a maximum likelihood estimate. The gradient of the error function can be computed using the derivative chain rule (cf. figure \ref{fig:computegraph}), this method is known as \emph{backpropagation} and forms the computational backbone of CNN architectures.
+\begin{align}
+    \pdv{E_{\mathrm{ML}}\qty(\vb*{\theta})}{\vb*{\theta_{l-1}}} &= \pdv{E_{\mathrm{ML}}\qty(\vb*{\theta})}{h_{l-1}} \pdv{h_{l-1}}{\vb*{\theta_{l-1}}} = \pdv{E_{\mathrm{ML}}\qty(\vb*{\theta})}{h_l}\pdv{h_l}{h_{l-1}} \pdv{h_l}{\vb*{\theta_{l-1}}}
+\end{align}
+\begin{figure}
+    \centering
+\def\svgwidth{\textwidth}
+\import{figures/}{computegraph.pdf_tex}
+\caption[Computational graph for error propagation]{Computational graph for error propagation within a neural network. a) shows the dependency of the layers on both the lower layer's output as well as the parameters $\vb*{\theta_l}$ during inference (also known as forward pass). In b) the computational nodes for the error gradient as needed for error backpropagation were added (known as the backward pass).}\label{fig:computegraph}
+\end{figure}\noindent
+The gradient calculated based on the training samples is then used to update the network's parameter.
+\begin{align}
+    \vb*{\theta}^{(s+1)} &= \vb*{\theta}^{(s)}-\eta \grad{E_{\mathrm{ML}}\qty(\vb*{\theta}^{(s)})}
+\end{align}
+Where $s$ counts the number of training epochs (a run through all the samples) and $\eta$ is a hyperparameter known as the \emph{learning rate}, that effectively describes the size of the step taken in direction of the gradient (cf. figure \ref{fig:errorsurf}). In practise, the gradient is often calculated as an average based on a subset of randomly selected training samples.
+\begin{align}
+    \vb*{\theta}^{(s+1)} &= \vb*{\theta}^{(s)}-\eta\frac{1}{M} \sum_{n=1}^M\grad{E_n\qty(\vb*{\theta}^{(s)})}
+\end{align}
+The $M$ sets of training samples are called (mini-) \emph{batches}, while training algorithms based on this idea are known as \emph{stochastic gradient descent} (SGD).
+\begin{figure}
+    \centering
+\def\svgwidth{.5\textwidth}
+\import{figures/}{errorsurface.pdf_tex}
+\caption[Illustration of a neural network's error function]{Illustration of the surface of a neural network's error function in parameter space. The function is non-convex and contains a local minimum. Note that the resulting minimum depends on both the learning rate and the initialization of the parameters. In this case, following the negative gradient (illustrated as a red arrow) using small steps will converge on a non-optimal local minimum.}\label{fig:errorsurf}
+\end{figure}\noindent
 \subsection{Spiking Neural Networks}
 \section{Limits of Deep Learning Approaches}
