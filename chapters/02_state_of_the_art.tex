@@ -160,7 +160,7 @@ Where the index $n$ denotes $n$th training sample and target class (also known a
 \end{align}
 The error function resulting from the softmax activation function specifically is referred to as the \emph{cross entropy} (equation \ref{eq:cross-entropy}). Now the network's parameters may be trained by minimizing its classification error w.r.t. $\vb*{\theta}$. As the logarithm is a convex function and the error function is the \emph{negative} log-likelihood, this is equivalent to a maximum likelihood estimate. The gradient of the error function can be computed using the derivative chain rule (cf. figure \ref{fig:computegraph}), this method is known as \emph{backpropagation} and forms the computational backbone of CNN architectures.
 \begin{align}
-    \pdv{E_{\mathrm{ML}}\qty(\vb*{\theta})}{\vb*{\theta_{l-1}}} &= \pdv{E_{\mathrm{ML}}\qty(\vb*{\theta})}{h_{l-1}} \pdv{h_{l-1}}{\vb*{\theta_{l-1}}} = \pdv{E_{\mathrm{ML}}\qty(\vb*{\theta})}{h_l}\pdv{h_l}{h_{l-1}} \pdv{h_l}{\vb*{\theta_{l-1}}}
+    \pdv{E_{\mathrm{ML}}\qty(\vb*{\theta})}{\vb*{\theta_{l-1}}} &= \pdv{E_{\mathrm{ML}}\qty(\vb*{\theta})}{h_{l-1}} \pdv{h_{l-1}}{\vb*{\theta_{l-1}}} = \pdv{E_{\mathrm{ML}}\qty(\vb*{\theta})}{h_l}\pdv{h_l}{h_{l-1}} \pdv{h_{l-1}}{\vb*{\theta_{l-1}}}
 \end{align}
 \begin{figure}
     \centering
@@ -176,12 +176,15 @@ Where $s$ counts the number of training epochs (a run through all the samples) a
 \begin{align}
     \vb*{\theta}^{(s+1)} &= \vb*{\theta}^{(s)}-\eta\frac{1}{M} \sum_{n=1}^M\grad{E_n\qty(\vb*{\theta}^{(s)})}
 \end{align}
-The $M$ sets of training samples are called (mini-) \emph{batches}, while training algorithms based on this idea are known as \emph{stochastic gradient descent} (SGD).
+The $\frac{N}{M}$ sets of training samples are called (mini-) \emph{batches} and are trained sequently until all samples have been seen, while training algorithms based on this optimization scheme are known as \emph{stochastic gradient descent} (SGD). It is at this point, that vectorization libraries are used to leverage the power of modern GPUs by processing an entire mini batch in parallel.
+
+State of the art CNN architectures expand upon the building blocks introduced in this chapter in various ways depending on the application. Often it is necessary to regularize the network in order to prevent overfitting. This can be achieved by adding penalties for large weights to the loss function (known as weight decay) or randomly setting some weights to zero during training (so-called dropout) \cite{srivastava2014dropout,pmlr-v28-wan13,krogh1992simple,treadgold1998simulated}. This can be complemented with adaptive learning schemes (i.e. algorithms that try to adapt learning hyperparameters during training) in order to reliably train neural networks \cite{zeiler2012adadelta,duchi2011adaptive,kingma2014adam,polyak1992acceleration,graves2013generating,sutskever2013importance,loshchilov2016sgdr}. Finally, both the network's topology and the loss function may be chosen in such a way as to encourage the learning of internal representations to fit the task (e.g. learn the pose of a 3D object) \cite{worrall2018cubenet,worrall2017harmonic,schmidt2012learning,cohen2016group}. Even though CNNs have been applied successfully in many fields, there is not yet a theory to derive the topology and hyperparameters best suited for a given problem or predict the network's performance.
 \begin{figure}
     \centering
 \def\svgwidth{.5\textwidth}
 \import{figures/}{errorsurface.pdf_tex}
-\caption[Illustration of a neural network's error function]{Illustration of the surface of a neural network's error function in parameter space. The function is non-convex and contains a local minimum. Note that the resulting minimum depends on both the learning rate and the initialization of the parameters. In this case, following the negative gradient (illustrated as a red arrow) using small steps will converge on a non-optimal local minimum.}\label{fig:errorsurf}
+\caption[Illustration of a neural network's error function]{Illustration of the surface of a neural network's error function in parameter space. The function is non-convex and contains a local minimum. Note that the resulting minimum depends on both the learning rate and the initialization of the parameters. In this case, following the negative gradient (illustrated as a red arrow) using small steps will converge on a non-optimal local minimum.}
+\label{fig:errorsurf}
 \end{figure}\noindent
 \subsection{Spiking Neural Networks}
 \section{Limits of Deep Learning Approaches}
