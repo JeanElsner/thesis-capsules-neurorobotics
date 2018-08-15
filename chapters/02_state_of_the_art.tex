@@ -20,7 +20,7 @@ Recent years have seen a surge of interest in deep learning methods, especially 
 \caption[CIFAR-10 classes and sample images]{Sample images from the CIFAR-10 \cite{cifar10} dataset and their corresponding classes. CIFAR-10 consists of 6000 images at 32 by 32 pixels for each of the 10 classes. Datasets such as this are often used as a benchmark to evaluate the performance of novel deep learning architectures for image recognition. This is done by using a subset of the dataset to train the neural network. The remainder of the images, which the network has not seen before, are used to evaluate the accuracy.}\label{fig:cifar10}
 \end{figure}\noindent
 The potential applications for a robust image classification system are myriad and range from automated driving and image-based diagnosis to robot vision and many more. As deep learning is currently the best candidate for such a system, it is well worth exploring.
-\subsection{Convolutional Neural Networks}
+\subsection{Convolutional Neural Networks}\label{section:cnn}
 CNN architectures are generally distinguished by their use of specific types of neuron-layers, namely, convolutional, pooling and fully connected layers. While wildly different network topologies may be found in literature, characterized by their use of skip connections, number of layers, number of paths etc., CNNs can always be reduced to these three basic layer types.
 \subsubsection{Fully Connected Layer}
 Each neuron in a fully connected layer is connected to all the activations in the previous layer. The activation of a single neuron (cf. figure \ref{fig:neuron}) is calculated by applying a nonlinearity to the weighted sum of its inputs and a bias.
@@ -188,5 +188,46 @@ The $\frac{N}{M}$ sets of training samples are called (mini-) \emph{batches} and
 State of the art CNN architectures expand upon the building blocks introduced in this chapter in various ways depending on the application. Often it is necessary to regularize the network in order to prevent overfitting. This can be achieved by adding penalties for large weights to the loss function (known as weight decay) or randomly setting some weights to zero during training (so-called dropout) \cite{srivastava2014dropout,pmlr-v28-wan13,krogh1992simple,treadgold1998simulated}. This can be complemented with adaptive learning schemes (i.e. algorithms that try to adapt learning hyperparameters during training) in order to reliably train neural networks \cite{zeiler2012adadelta,duchi2011adaptive,kingma2014adam,polyak1992acceleration,graves2013generating,sutskever2013importance,loshchilov2016sgdr}. Finally, both the network's topology and the loss function may be chosen in such a way as to encourage the learning of internal representations to fit the task (e.g. learn the pose of a 3D object) \cite{worrall2018cubenet,worrall2017harmonic,schmidt2012learning,cohen2016group}. Even though CNNs have been applied successfully in many fields, there is not yet a theory to derive the topology and hyperparameters best suited for a given problem or predict the network's performance.
 
 \subsection{Spiking Neural Networks}
-
+SNNs use more elaborate neuronal models than those discussed in the previous section and therefore are able to mimic the function of biological networks of neurons more closely. This is mainly achieved by adding dynamics to the states of the neurons and synapses (in CNNs these are activities and weights respectively). Biological neurons are surrounded by cell membranes that act as insulators, which can be charged by other neurons in the network with short electrical impulses over the synapses. As the membrane is not a perfect insulator, this charge degrades over time. If a neuron model represents the incoming signals as discrete events (this is a reasonable simplification, as the shape is roughly the same for all of a neuron's impulses) it is referred to as \emph{integrate-and-fire}. Models that additionally include a leakage (i.e. the neuron's membrane potential degrades over time) are by far the most popular and known as \emph{leaky integrate-and-fire} (LIF) \cite{hodgkin1952quantitative,burkitt2006review}. A LIF neuron can be modelled as an RC circuit (cf. figure \ref{fig:LIF}) that fires off an impulse, once the potential reaches a threshold. Using Kirchhoff's current law, the incoming current $I(t)$ can be written as the sum of the resistive current and the current charging the capacitor.
+\begin{align}
+    I(t) = I_R + I_C =  \frac{u(t) - u_\mathrm{rest}}{R}+C\dv{u}{t}
+\end{align}
+Where in the second step Ohm's law was used for the linear resistor $R$ as well as the definition of capacity $C=\frac{q}{u}$ and current $I_C=\dv{q}{t}=C\dv{u}{t}$ for the capacitor $C$. Multiplying by the resistance $R$ this can be written as
+\begin{align}
+    R I(t) &=  u(t) - u_\mathrm{rest}+\underbrace{RC}_{\tau}\dv{u}{t}\\
+    \tau \dv{u}{t}&= -\qty(u(t)-u_\mathrm{rest})+RI(t)\label{eq:LIF}\\
+    &\TransformVert\\
+    \tau s U(s) - u\qty(0^+) &= -U(s)+\frac{u_\mathrm{rest}}{s}+R I(s)\\
+    U(s) &= u_\mathrm{rest}\frac{\frac{1}{\tau}}{s\qty(s+\frac{1}{\tau})}+u\qty(0^+)\frac{1}{s+\frac{1}{\tau}}+\frac{R}{\tau}I(s) \frac{1}{s+\frac{1}{\tau}}\\
+    &\InversTransformVert\\
+    u(t) &= u_\mathrm{rest}\qty(1-e^{-\frac{t}{\tau}})+u\qty(0^+)e^{-\frac{t}{\tau}}+\frac{R}{\tau}\int_0^\infty e^{-\frac{t'}{\tau}}I(t-t')\dd{t'}\\
+    u(t)&=u_\mathrm{rest}+\frac{R}{\tau}\int_0^\infty e^{-\frac{t'}{\tau}}I(t-t')\dd{t'}\label{eq:LIF-solution}.
+\end{align}
+Where the Laplace transform was used to find the solution of the linear differential equation and the initial membrane potential was assumed to be at resting potential $u(0^+)=u_\mathrm{rest}$. In the case of LIF models, the input current will consist of discrete events represented by delta distributions.
+\begin{align}
+    I_\mathrm{pre}(t) = q\sum_i \delta\qty(t-t_{i,\mathrm{pre}}^{(f)})
+\end{align}
+This is known as a \emph{spike train}, with $t_{i,\mathrm{pre}}^{(f)}$ the firing times of the presynaptic neurons and $q$ the charge delivered with each spike. In addition to the presynpatic spike train, each neuron generates its own postsynaptic spike train. The firing times $t_{i,\mathrm{post}}^{(f)}$ are determined by the threshold $\vartheta$.
+\begin{align}
+    u(t_{k,\mathrm{post}}^{(f)})=\vartheta
+\end{align}
+Once the threshold is reached, the potential is reset to $u_\mathrm{reset} < \vartheta$, firing the postsynaptic charge $C\qty(\vartheta-u_\mathrm{reset})$. Putting both the pre- and postsynaptic activations $I(t)=I_\mathrm{pre}(t)+I_\mathrm{post}(t)$ into equation \ref{eq:LIF-solution} leads to the momentary voltage of a LIF neuron.
+\begin{align}
+    u(t)-u_\mathrm{rest} &= \frac{R}{\tau}\qty(q \sum_i \exp(-\frac{t-t_{i,\mathrm{pre}}^{(f)}}{\tau})-C\qty(\vartheta-u_\mathrm{rest})\sum_k\exp(-\frac{t-t_{k,\mathrm{post}}^{(f)}}{\tau}))
+\end{align}
+As the impulses are extremely sparse in time, LIF neurons generally allow for much more efficient computation compared to the neurons found in CNNs. A single spiking neuron, encoding information in the rate and temporal patterns of its spike train, can replace hundreds of second generation neurons\footnote{The first generation of neurons or neural networks generally refers to networks consisting of linear neurons (called \emph{perceptrons}), while the second generation is understood to refer to architectures using artificial neurons with nonlinear activation functions, such as CNNs as discussed in section \ref{section:cnn}. Networks based on the dynamics of spiking neurons are known as third generation neural networks.} \cite{gerstner2002spiking,maass1997networks,rieke1999spikes}.
+\begin{figure}
+    \centering
+\begin{tikzpicture}
+  \node[anchor=south west,inner sep=0] at (0,0) {\includegraphics[scale=.5]{figures/LIF.pdf}};
+  \node[anchor=south] at (1.2,3.8) {presynaptic activation};
+  \node[anchor=south] at (1.8,3.1) {$I(t)$};
+  \node[anchor=south] at (-.3,2.2) {$R$};
+  \node[anchor=south] at (1,2.2) {$C$};
+  \node[anchor=south] at (-.5,1) {$u_\mathrm{rest}$};
+  \draw [decorate,decoration={brace,amplitude=5pt}]
+(2.5,3.1) -- (2.5,.5) node [anchor=west,black,midway,xshift=1em] {$u(t)$};
+\end{tikzpicture}
+\caption[Electrical circuit of a leaky integrate and fire neuron]{Electrical circuit of a leaky integrate and fire neuron. The unit saves incoming charges $I(t)$ called the presynaptic activation into the capacitor $C$, essentially summing them up or \emph{integrating} them. Once the charge reaches a threshold value, the neuron discharges or \emph{fires} (postsynaptic activation). The dissipation of ions through the cell's membrane is modelled by allowing the charge to \emph{leak} through the resistor $R$.}\label{fig:LIF}
+\end{figure}\noindent
 \section{Limits of Deep Learning Approaches}
