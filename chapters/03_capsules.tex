@@ -93,8 +93,9 @@ Where $\vb{T} = (0,...,1,...0)^T$ is a one-hot encoded vector of the true class 
 \end{figure}\noindent
 \begin{figure}
     \centering
-    \includegraphics[width=.75\textwidth]{figures/vector-capsules-parameters.pdf}
-\caption[Instantiation parameters learned by a vector capsule network on MNIST]{Instantiation parameters learned by a vector capsule network on MNIST \cite{sabour2017dynamic}. The decoder of a trained vector capsule network is used to reconstruct an input image. By perturbing each dimension of the class capsule, sensible instantiation parameters are found to be encoded by the capsule. }\label{fig:vector-capsules-parameters}
+    \includegraphics[width=.8\textwidth]{figures/vector-capsules-parameters.pdf}
+\caption[Instantiation parameters learned by a vector capsule network on MNIST]{Instantiation parameters learned by a vector capsule network on MNIST \cite{sabour2017dynamic}. The decoder of a trained vector capsule network is used to reconstruct an input image. By perturbing each dimension of the class capsule, sensible instantiation parameters are found to be encoded by the capsule. In this example the shown dimensions where incremented by $\num{.05}$ on the interval $[\num{-0.25}, \num{0.25}]$ around the base values. Note the continuous distribution of the parameters. This is similar to the latent space of variational auto-encoders \cite{kingma2013auto} }\label{fig:vector-capsules-parameters}
 \end{figure}\noindent
 Sabour et al. were able to demonstrate that a shallow network with only two capsule layers can already achieve good results in object recognition tasks and that the class capsules encode sensible instantiation parameters like the thickness of strokes in case of the MNIST\footnote{Available at \url{http://yann.lecun.com/exdb/mnist/}} dataset.
 \section{Matrix Capsules With EM Routing}
+In 2018 Hinton et al. published another update on capsule network architectures. 
