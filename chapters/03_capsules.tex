@@ -41,7 +41,7 @@ In this scheme, so far only the part-whole transformation matrices $\vb{W}_{ij}$
 \end{align}
 The $b_{ij}$ can be trained discriminatively along with the other parameters. But it was found that the priors have little influence over the routing algorithm.
 
-Using a vector as capsule output allows the use of a powerful dynamic routing-by-agreement algorithm. The agreement between capsule $i$ and each possible parent $j$ is calculated using the scalar product of the lower capsule's vote and the higher capsule's current output.
+Using a vector as capsule output allows the use of a powerful dynamic routing-by-agreement algorithm. The agreement between capsule $i$ and each possible parent $j$ is calculated using the scalar product of the lower capsule's vote and the higher capsule's current output \footnote{Seeing how the internal representation, the votes and the agreement are all vectors, this type of architecture will be referred to as \emph{vector capsules} for the remainder of this thesis.}.
 \begin{align}
     a_{ij} = \vb{u}_j^T \vb{\hat{u}}_{j|i}
 \end{align}
@@ -85,12 +85,16 @@ The primary capsules i.e. the first capsule layer computes its input vectors fro
 \begin{align}
     L_k = T_k \operatorname{max}\qty(0,m^+ - \norm{\vb{v}_k})^2 + \lambda \qty(1-T_k) \operatorname{max}\qty(0, \norm{\vb{v}_k}-m^-)^2
 \end{align}
-Where $\vb{T} = (0,...,1,...0)^T$ is a one-hot encoded vector of the true class labels and $\lambda$ is used to down-weigh the loss for absent classes so that the vectors don't become too short during initial training. In addition Sabour et al. used a reconstruction loss not unlike with transforming auto-encoders in order to encourage the class capsules to encode useful instantiation parameters for each class. This is done by masking out all but the correct class capsule during training and feeding its output vector to a 3-layer decoder (cf figure \ref{fig:vector-capsules-reconstr}). The reconstruction loss is calculated as the euclidean distance between the decoder's output and the input image and scaled down so as not to dominate the margin loss. Sabour et al. were able to demonstrate that a shallow network with only two capsule layers can already achieve good results in object recognition tasks and that the class capsules encoded sensible instantiation parameters like the thickness of strokes on the MNIST dataset.
-
-As the internal representation, the votes and the agreement are all vectors, this type of architecture will be referred to as \emph{vector capsules} for the remainder of this thesis.
+Where $\vb{T} = (0,...,1,...0)^T$ is a one-hot encoded vector of the true class labels and $\lambda$ is used to down-weigh the loss for absent classes so that the vectors don't become too short during initial training. In addition Sabour et al. used a reconstruction loss not unlike with transforming auto-encoders in order to encourage the class capsules to encode useful instantiation parameters for each class. This is done by masking out all but the correct class capsule during training and feeding its output vector to a 3-layer decoder (cf. figure \ref{fig:vector-capsules-reconstr}). The reconstruction loss is calculated as the euclidean distance between the decoder's output and the input image and scaled down so as not to dominate the margin loss. After the network has been trained, the decoder can be used to inspect the instantiation parameters learned by the class capsules. To do this, for a single input image, each dimension of the correct class capsule's output vector is varied and the effect on the reconstructed image is observed (cf. figure \ref{fig:vector-capsules-parameters}).
 \begin{figure}
     \centering
     \includegraphics[width=.75\textwidth]{figures/vector-capsules-reconstr.png}
 \caption[Decoder on a class vector capsule layer]{Decoder on a class vector capsule layer \cite{sabour2017dynamic}. The output of the correct class capsule only is used as input for a 3-layer fully connected decoder in order to reconstruct the input image and encourage the class capsule to encode useful instantiation parameters.}\label{fig:vector-capsules-reconstr}
 \end{figure}\noindent
+\begin{figure}
+    \centering
+    \includegraphics[width=.75\textwidth]{figures/vector-capsules-parameters.pdf}
+\caption[Instantiation parameters learned by a vector capsule network on MNIST]{Instantiation parameters learned by a vector capsule network on MNIST \cite{sabour2017dynamic}. The decoder of a trained vector capsule network is used to reconstruct an input image. By perturbing each dimension of the class capsule, sensible instantiation parameters are found to be encoded by the capsule. }\label{fig:vector-capsules-parameters}
+\end{figure}\noindent
+Sabour et al. were able to demonstrate that a shallow network with only two capsule layers can already achieve good results in object recognition tasks and that the class capsules encode sensible instantiation parameters like the thickness of strokes in case of the MNIST\footnote{Available at \url{http://yann.lecun.com/exdb/mnist/}} dataset.
 \section{Matrix Capsules With EM Routing}
