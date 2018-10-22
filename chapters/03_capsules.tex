@@ -20,7 +20,7 @@ This means that except for the first layer of capsules, only the viewpoint invar
 \end{figure}\noindent
 
 These first capsule networks actually consist of only one layer of capsules and do not include the routing mechanism of later implementations. Instead, they include two internal layers of logistic neurons, termed recognition and generation units respectively (cf. figure \ref{fig:auto-encoders}). The recognition units are trained to extract pose parameters and the probability that the visual entity is present directly from the provided image. A capsule's input can be constrained to a fixed receptive field with the capsules aligned in a grid across the image. The capsules then apply a transformation to the pose and provide the generation units with this information. The generation units on the other hand are trained to output the transformed part of the input image centered at the capsule's receptive field. All the neurons within a capsule are trained discriminatively using gradient descent with backpropagation. The training signal is provided by a form of reconstruction loss where the capsules have access to the transformation and the input and reconstruction target are the original and transformed images respectively. Transforming auto-encoders are able to learn poses in the form of $3x3$ matrices and can be used to successfully apply affine transformations to input images once trained. However, they are limited to one layer of capsules and cannot be scaled effectively, as the capsules are fixed to a single position, compared to the shared weights of moving filters in convolutional layers. Also they are only able to learn properties, that can be controlled and provided in explicit non-visual form to the network.
-\section{Dynamic Routing Between Capsules}
+\section{Dynamic Routing Between Capsules}\label{sec:dynamic-routing}
 In 2017 Sabour et al. extended upon the transforming auto-encoders by suggesting a dynamic routing algorithm for capsules \cite{sabour2017dynamic}. While the benefit of dynamic routing between capsule layers in regard to part-whole relationships was already elaborated upon by Hinton et al., Sabour et al. also motivated the mechanism biologically. They pointed out that human vision ignores irrelevant details by focusing attention on salient features in a sequence of fixations and only ever processes a fraction of the optic array at the highest resolution. They assumed that with a single fixation, groups of activated neurons build a tree structure within the fixed multi-layer visual system. The paper suggests to implement the nodes of this image parse tree as active capsules and have each capsule choose their parent node based on the routing algorithm. As with the capsules of transforming auto encoders, the capsule's neurons should learn to represent various instantiation parameters such as pose, deformation, velocity, albedo, hue, texture, etc. However, the probability of the instance's presence is encoded in the length of a vector of instantiation parameters. A nonlinearity is applied to the output vector in order to keep the length from exceeding $\num{1}$, while keeping the orientation unchanged.
 \begin{align}
     \vb{u}_j = \frac{\norm{\vb{s}_j}^2}{1+\norm{\vb{s}_j}^2}\frac{\vb{s}_j}{\norm{\vb{s}_j}}
@@ -50,26 +50,29 @@ If the scalar product is large, it induces top-down feedback, increasing the cou
 \caption{Dynamic routing-by-agreement}\label{alg:routing-by-agreement}
 \begin{algorithmic}[1]
 \Procedure{Routing}{$\vb{\hat{u}}_{j|i},r,l$}
-\For{capsule $i$ in layer $l$ and capsule $j$ in layer $l+1$}
-  \State{$b_{ij}\gets 0$}
+\ForAll{$i \in \Omega_l$}
+\Comment{$\Omega_l$ is the set of all capsules in layer $l$}
+  \ForAll{$j \in \Omega_{l+1}$}
+    \State{$b_{ij}\gets 0$}
+  \EndFor
 \EndFor
 \For{$r$ iterations}
-  \For{capsule $i$ in layer l}
+  \ForAll{$i \in \Omega_l$}
     \State{$\vb{c}_i \gets \operatorname{softmax}\qty(\vb{b}_i)$}
     \Comment{computes equation \ref{eq:coupling-coeff}}
   \EndFor
-  \For{capsule $j$ in layer l+1}
+  \ForAll{$j \in \Omega_{l+1}$}
     \State{$\vb{s}_j \gets \sum_i c_{ij} \vb{\hat{u}}_{j|i}$}
-  \EndFor
-  \For{capsule $j$ in layer l+1}
     \State{$\vb{u}_j \gets \operatorname{squash}\qty(\vb{s}_j)$}
     \Comment{computes equation \ref{eq:squash}}
   \EndFor
-  \For{capsule $i$ in layer $l$ and capsule $j$ in layer $l+1$}
-    \State{$b_{ij} \gets b_{ij} + \vb{u}_j^T \vb{\hat{u}}_{j|i}$}
+  \ForAll{$i \in \Omega_l$}
+    \ForAll{$j \in \Omega_{l+1}$}
+      \State{$b_{ij} \gets b_{ij} + \vb{u}_j^T \vb{\hat{u}}_{j|i}$}
+    \EndFor
   \EndFor
 \EndFor
-\Return{$\vb{u}_j$}
+\State\Return{$\vb{u}_j$}
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
@@ -94,8 +97,87 @@ Where $\vb{T} = (0,...,1,...0)^T$ is a one-hot encoded vector of the true class 
 \begin{figure}
     \centering
     \includegraphics[width=.8\textwidth]{figures/vector-capsules-parameters.pdf}
-\caption[Instantiation parameters learned by a vector capsule network on MNIST]{Instantiation parameters learned by a vector capsule network on MNIST \cite{sabour2017dynamic}. The decoder of a trained vector capsule network is used to reconstruct an input image. By perturbing each dimension of the class capsule, sensible instantiation parameters are found to be encoded by the capsule. In this example the shown dimensions where incremented by $\num{.05}$ on the interval $[\num{-0.25}, \num{0.25}]$ around the base values. Note the continuous distribution of the parameters. This is similar to the latent space of variational auto-encoders \cite{kingma2013auto} }\label{fig:vector-capsules-parameters}
+\caption[Instantiation parameters learned by a vector capsule network on MNIST]{Instantiation parameters learned by a vector capsule network on MNIST \cite{sabour2017dynamic}. The decoder of a trained vector capsule network is used to reconstruct an input image. By perturbing each dimension of the class capsule, sensible instantiation parameters are found to be encoded within the capsule. In this example the shown dimensions where incremented by $\num{.05}$ on the interval $[\num{-0.25}, \num{0.25}]$ around the base values. Note the continuous distribution of the parameters. This is similar to the latent space of variational auto-encoders \cite{kingma2013auto} }\label{fig:vector-capsules-parameters}
 \end{figure}\noindent
-Sabour et al. were able to demonstrate that a shallow network with only two capsule layers can already achieve good results in object recognition tasks and that the class capsules encode sensible instantiation parameters like the thickness of strokes in case of the MNIST\footnote{Available at \url{http://yann.lecun.com/exdb/mnist/}} dataset.
+Sabour et al. were able to demonstrate that a shallow network with only two capsule layers can already achieve good results in object recognition tasks and that the class capsules encode sensible instantiation parameters like the thickness of strokes in case of the MNIST\footnote{Available at \url{http://yann.lecun.com/exdb/mnist/}} dataset. The biological plausibility of vector capsules was further demonstrated by their ability to effectively explain-away regions of overlap so as to successfully segment highly overlapping objects.
 \section{Matrix Capsules With EM Routing}
-In 2018 Hinton et al. published another update on capsule network architectures. 
+The most recent update on capsules came from Hinton et al. in 2018. They pointed out several shortcomings of vector capsules, that they intended to overcome, including \cite{hinton2018matrix}:
+\begin{enumerate}
+    \item While routing based on agreement is motivated by an assumed parse tree like structure of grouped neurons in the human visual system \cite{hinton2000learning}, the choice to encode the probability that an object is present in the length of a capsule's output vector requires an unprincipled nonlinearity (cf. equation \ref{eq:squash}) that precludes the dynamic routing-by-agreement algorithm from minimizing a sensible objective function. This in turn reduces the overall biological plausibility of the vector capsules introduced by Sabour et al. in 2017.
+    \item Dynamic routing-by-agreement has difficulty differentiating between good and very good clusters of votes as the scalar product used to determine the agreement effectively computes the cosine of two angles -- a function that saturates around 1.
+    \item Using an $n$-dimensional vector as the internal representation rather than a matrix with $n$ elements requires a part-whole transformation matrix with $n^2$ weights compared to $n$ for matrix-representation.
+\end{enumerate}
+Compared to vector capsules, the internal representation of matrix capsules is separated into a $4\cross 4$ pose matrix $\vb*{\mu}$ and the object presence probability $a$. This means that the part-whole transformation matrices between all capsule layers are also of size $4\cross 4$. The vote $\vb{V}_{ij}$ between a lower capsule $i$ and a higher capsule $j$ is computed as a matrix multiply.
+\begin{align}
+    \vb{V}_{ij} = \vb*{\mu}_i \vb{W}_{ij}
+\end{align}
+Primary capsules again receive their activity and instantiation parameters from a standard convolutional layer (cf. section \ref{sec:dynamic-routing}). The activities of all other consecutive capsule layers are determined by the routing algorithm. Routing between matrix-capsules is based on an EM algorithm \footnote{Expectation-maximization (EM) algorithms are commonly used in statistics and machine learning in order to estimate latent parameters of distributions. They alternate between iteratively computing a log-likelihood function using the current estimation of the parameters in the expectation step and computing parameters maximizing the same log-likelihood function in the following maximization step \cite{dempster1977maximum}.} fitting a gaussian mixture model, where the higher capsules are interpreted as gaussian distributions while the vectorized pose matrices of the lower capsules constitute the data points. A fixed cost of $-\beta_u$ must be paid per data point assigned to a capsule if that capsule is not activated. Formally, this cost is the negative log probability density of seeing a data point under an improper uniform prior. On the other hand, if a capsule gets activated, a fixed cost $-\beta_a$ must the paid for coding its mean and variance as well as additional costs for seeing each assigned data point under the distribution given by the activated capsule\footnote{ Technically the active capsule's prediction of seeing a data point should be computed using the inverse of the part-whole transformation matrix. Hinton et al. use the probability of the data point's vote under the assigned capsule as a computationally low-cost estimate instead.}. These costs are motivated by the minimum description length principle\footnote{The minimum description length principle refers to a concept in information theory. It states that the best hypothesis for a given dataset is the one with the best coding i.e. the highest compression of the data \cite{rissanen1978modeling}.} and the difference in cost between activating a capsule and not activating it is used to calculate the higher capsules' activation probabilities.
+
+The probability of seeing data point $i$ under active capsule $j$'s gaussian with mean $\vb*{\mu}_j$ and axis aligned covariance matrix can be computed for each component $h$ of $i$'s vote $\vb{V}_{ij}$.
+\begin{align}
+    P_{i|j}^h &= \frac{1}{\sqrt{2\pi\qty(\sigma_j^h)^2}}\exp(-\frac{\qty(V_{ij}^h-\mu_j^h)^2}{2\qty(\sigma_j^h)^2})
+\end{align}
+And its negative log-likelihood can be written as
+\begin{align}
+    -\ln(P_{i|j}^h) &= \frac{ln(2\pi)}{2}+\ln(\sigma_j^h)+\frac{\qty(V_{ij}^h-\mu_j^h)^2}{2\qty(\sigma_j^h)^2}.
+\end{align}
+The total cost of explaining the assigned data points of an activated capsule $j$ per dimension $h$ can then be computed as the sum over all the assigned lower capsules' negative log-likelihoods weighed by the coupling coefficients or assignment probabilities $R_{ij}$.
+\begin{align}
+    cost_j^h &= - \sum_i R_{ij} \ln(P_{i|j}^h)\\
+    &= \qty(\frac{ln(2\pi)}{2}+\ln(\sigma_j^h))\sum_i R_{ij}+\sum_i\frac{R_{ij}\qty(V_{ij}^h-\mu_j^h)^2}{2\qty(\sigma_j^h)^2}\\
+    &= \qty(\frac{ln(2\pi)}{2}+\ln(\sigma_j^h) + \frac{1}{2})\sum_i R_{ij}
+\end{align}
+Where in the last step the definition of covariance $\qty(\vb*{\sigma}_j)^2$ was used with $p_{i\in\Omega_l}$ the prior probability density over the lower capsules' assignment to higher capsule $j$.
+\begin{align}
+    \qty(\sigma_j^h)^2 = \sum_i p_i\qty(V_{ij}^h-\mu_j^h)^2 = \sum_i\frac{R_{ij} \qty(V_{ij}^h-\mu_j^h)^2}{\sum_i R_{ij}}
+\end{align}
+Finally the activation probability of the higher capsule $j$ can be computed as the logistic function applied to the difference of the activation costs.
+\begin{align*}
+    a_j &= \operatorname{logistic}\qty(\lambda\qty(\beta_a-\beta_u\sum_i R_{ij}-\sum_h cost_j^h))
+\end{align*}
+
+\begin{algorithm}
+\caption{Expectation-Maximization routing}\label{alg:em-routing}
+\begin{algorithmic}[1]
+\Procedure{EM-Routing}{$\vb{a},\vb{V},r,l$}
+    \ForAll{$i \in \Omega_l$}
+        \ForAll{$j \in \Omega_{l+1}$}
+            \State{$R_{ij} \gets \frac{1}{\abs{\Omega_{l+1}}}$}
+        \EndFor
+    \EndFor
+    \For{$r$ iterations}
+        \ForAll{$j \in \Omega_{l+1}$}
+            \State\Call{M-Step}{$\vb{a}.\vb{R},\vb{V},j$}
+        \EndFor
+        \ForAll{$i \in \Omega_l$}
+            \State\Call{E-Step}{$\vb*{\mu},\vb*{\sigma},\vb{a},\vb{V},i$}
+        \EndFor
+    \EndFor
+    \State\Return{$\vb{a},\vb*{\mu}$}
+\EndProcedure
+\Procedure{M-Step}{$\vb{a},\vb{R},\vb{V},j$}
+    \ForAll{$i \in \Omega_l$}
+        \State{$R_{ij}\gets R_{ij}a_i$}
+    \EndFor
+    \For{$h\gets 1$ \textbf{to} $H$}
+        \State $\mu_{j}^h \gets \frac{\sum_i R_{ij} V_{ij}h}{\sum_i R_{ij}}$
+        \State $\qty(\sigma_j^h)^2 \gets \frac{\sum_i R_{ij} \qty(V_{ij}^h-\mu_j^h)^2}{\sum_i R_{ij}}$
+        \State $cost^h \gets \qty(\beta_u + \log(\sigma_j^h))\sum_i R_{ij}$
+    \EndFor
+    \State $a_j \gets \operatorname{logistic}\qty(\lambda\qty(\beta_a - \sum_h cost^h))$
+    \State\Return{$\vb*{\mu}_j,\vb*{\sigma}_j$}
+\EndProcedure
+\Procedure{E-Step}{$\vb*{\mu},\vb*{\sigma},\vb{a},\vb{V},i$}
+    \ForAll{$j \in \Omega_{l+1}$}
+        \State $p_j \gets \frac{1}{\prod_h^H 2\pi \qty(\sigma_j^h)^2}\exp(-\sum_h^H\frac{\qty(V_{ij}^h-\mu_j^h)^2}{2\qty(\sigma_j^h)^2})$
+        \State $R_{ij} \gets \frac{a_j p_j}{\sum_{k\in\Omega_{l+1}} a_k p_k}$
+        \State\Return{$\vb{R}$}
+    \EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/matrix-capsules.png}
+\caption[Multi-layer matrix capsule network]{Multi-layer matrix capsule network \cite{hinton2018matrix}. The standard convolutional layer has $A$ filters, while the 4 capsule layers consist of $B,C,D$ and $E$ types of capsules respectively. Between two capsule layers, the number of weights is given by the product of the size of the receptive field ($K\cross K$ for the convolutional capsules, $1\cross 1$ for the class capsules), the number of capsule types of both layers and the size of the pose matrix (always $4\cross 4$).}\label{fig:matrix-capsules}
+\end{figure}\noindent
