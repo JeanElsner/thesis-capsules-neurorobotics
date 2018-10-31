@@ -1,4 +1,132 @@
 \chapter{Experimental Setup}\label{chapter:experimental-setup}
+This chapter explains the experiments in detail. How they are set up, where the data comes from and what exactly is measured and why. All the experiments in this thesis are designed in the Python programming language and evaluated on the same hard- and software configuration (cf. table \ref{tab:hardware}).
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+Processor          & 6 core Intel Core i7-6850K CPU @ 3.60GHz         \\
+Memory             & 32GB                                             \\
+Graphics Processor & $2\cross$ Geforce GTX 1080 8GB linked via NVLink \\
+Operating System   & Ubuntu 16.04 LTS                                 \\
+CUDA               & 9.0                                              \\
+Python             & 3.6.6                                            \\
+PyTorch            & 0.4.1                                            \\
+BindsNET           & 0.1.8                                            \\ \bottomrule
+\end{tabular}
+\caption[Hardware and Software Components]{Hardware and software components used to run all the experiments.}
+\label{tab:hardware}
+\end{table}
+
 \section{Neural networks}
+The experiments are run on 4 different types of neural networks, that follow different paradigms and vary in their degree of biological plausibility. Namely they are:
+\begin{enumerate}
+    \item A classical 4-layer convolutional neural network.
+    \item Vector capsules with dynamic routing in a 3-layer neural network.
+    \item Convolutional matrix capsule layers as part of a 5-layer network.
+    \item A shallow spiking neural network with a single hidden layer.
+\end{enumerate}
+The CNN, vector and matrix capsules are all implemented within the PyTorch \cite{paszke2017automatic} framework. This allows them to be trained using the same established optimization schemes. Spiking neural networks however require additional dynamics, that are not usually part of the typical tensor-based neural network software libraries. Therefore, the SNN used in the experiments is implemented on top of the recently released BindsNET, a python package that extends PyTorch with the neural dynamics necessary for spiking neural networks and biological learning algorithms like STDP \cite{2018arXiv180601423H}. The respective networks' topologies are determined largely by a mix of experience, published results on similar data as well as trial and error. However, due to the relative simplicity and low resolution of the used data, they are all shallow architectures, which makes it easier to draw conclusions about the used technology w.r.t their performance.
+\subsubsection{CNN}
+As CNNs are generally well established a good network topology for the experiments could easily be found and comes down to a variation of a classical LeNet \cite{lecun1998gradient}. The network consists of 4 layers, with max pooling operations after each convolutional layer. For the exact network topology, see table \ref{tab:cnn-config}.
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+Layer                   & \multicolumn{2}{l}{Configuration} \\ \midrule
+Convolutional layer 1   & Number of kernels   & 32          \\
+                        & Kernel size         & $5\cross 5$ \\
+                        & Stride              & 1           \\
+                        & Activation function & ReLU        \\
+Max pooling             & Window size         & $2\cross 2$ \\
+Convolutional layer 2   & Number of kernels   & 64          \\
+                        & Kernel size         & $5\cross 5$ \\
+                        & Stride              & 1           \\
+                        & Activation function & ReLU        \\
+Max pooling             & Window size         & $2\cross 2$ \\
+Fully connected layer 1 & Number of neurons   & 1024        \\
+                        & Activation function & ReLU        \\
+Fully connected layer 2 & Number of neurons   & 5           \\
+                        & Activation function & Softmax     \\ \bottomrule
+\end{tabular}
+\caption[Layers of the convolutional neural network]{Layers of the convolutional neural network and their configuration, defining the entire network's topology. Note that the number of weights between the second convolutional layer and the first fully connected layer computes as the product of the number of total neurons in each layer, i.e. $\qty(64\cross 5\cross 5)\cross 1024 = \num{1638400}$}
+\label{tab:cnn-config}
+\end{table}
+\subsubsection{Vector Capsules}
+The vector capsule network is composed of 3 layers in total. This composition is the minimal configuration to run a capsule network and similar to the one used by Sabour et al. in 2017. Namely it is made up of a convolutional layer that is used to initialize the poses and activations of the primary capsule layer and the class capsule layer on top. However, other than the network used by Sabour et al., there is no decoder on top of the class capsule layer and no reconstruction loss is used to train the network. Instead, the vector capsule network is directly trained using the length of the output vector of the class capsules, similarly to the matrix capsule network by Hinton et al. This has the added benefit that the vector capsules can be trained using the exact same mechanism as the convolutional and matrix capsule networks. Also, the network is not forced to encode features, that are useful for reconstruction but rather encouraged to learn features, that are useful for correct classification. Additionally, compared to Sabour et al. the width of the convolutional layer, the vector output dimensionality as well as the kernel size of the primary capsules are reduced, without losing any accuracy. Together with the removal of the decoder, this greatly reduces the number of parameters to train (cf. table \ref{tab:vector-config}). Routing-by-agreement (cf. algorithm \ref{alg:routing-by-agreement}) is used between the capsule layers. The routing algorithm is implemented using PyTorch tensors and operators -- this makes it possible to efficiently run the network on GPUs and use the automatic gradients to train the part-whole matrices.
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+Layer               & \multicolumn{2}{l}{Configuration}     \\ \midrule
+Convolutional layer & Number of kernels       & 32          \\
+                    & Kernel size             & $5\cross 5$ \\
+                    & Stride                  & 1           \\
+                    & Activation function     & ReLU        \\
+Primary capsules    & Number of capsule types & 32          \\
+                    & Kernel size             & 1           \\
+                    & Stride                  & 2           \\
+                    & Dimensionality          & 14          \\
+                    & Activation function     & Squash (cf. equation \ref{eq:squash}) \\
+Class capsules      & Number of types         & 5           \\
+                    & Input dimension         & 14          \\
+                    & Output dimension        & 8           \\ \bottomrule
+\end{tabular}
+\caption[Layers of the vector capsule network]{Layers of the vector capsule network and their configuration. The network consists of 3 layers, only 2 of which are capsule layers. This represents the bare minimum for a capsule network, as one layer is required to initialize the primary capsules and routing is only possible between two consecutive capsule layers.}
+\label{tab:vector-config}
+\end{table}
+\subsubsection{Matrix Capsules}
+There is only little research published on matrix capsules to draw from. For this reason, the network topology is exactly the same as the \enquote{small} configuration used by Hinton et al., which they used for image data of the same size as in these experiments. Nevertheless, training matrix capsules is quite challenging, as the gradient will often either vanish or the capsules won't learn at all. To prevent this from happening, capsule-aware versions of dropout and batch normalization are implemented (cf. section \ref{sec:training}). They differ from the regular implementation by considering the internal representation of matrix capsules ($4\cross 4$ pose matrices and $2D$ feature activity maps). By respectively deactivating or normalizing highly correlated groups of neurons, the network can be regularized during training \cite{hinton2012improving}. All of the capsule layers are convolutional and comprised of matrix capsules (cf. table \ref{tab:matrix-config}). Expectation-Maximization routing (cf. algorithm \ref{alg:em-routing}) is employed between all adjacent capsule layers. As with vector capsules, automatic generation of gradients for the routing algorithm is utilized to train the part-whole matrices and description costs discriminatively.
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+Layer                    & \multicolumn{2}{l}{Configuration}                   \\ \midrule
+Convolutional layer      & Number of kernels       & 64                        \\
+                         & Kernel size             & $5\cross 5$               \\
+                         & Stride                  & 2                         \\
+                         & Padding                 & 2                         \\
+                         & Activation function     & ReLU                      \\
+Batch normalization      &                         &                           \\
+Dropout                  &                         &                           \\
+Primary capsules         & Number of capsule types & 8                         \\
+                         & Kernel size             & $1\cross 1$               \\
+                         & Stride                  & 1                         \\
+                         & Dimensionality          & $4\cross 4$               \\
+                         & Activation function     & Sigmoid (only activities) \\
+Dropout                  &                         &                           \\
+Convolutional capsules 1 & Number of capsule types & 16                        \\
+                         & Kernel size             & $3\cross 3$               \\
+                         & Stride                  & 2                         \\
+                         & Dimensionality          & $4\cross 4$               \\
+Dropout                  &                         &                           \\
+Convolutional capsules 2 & Number of capsule types & 16                        \\
+                         & Kernel size             & $3\cross 3$               \\
+                         & Stride                  & 1                         \\
+                         & Dimensionality          & $4\cross 4$               \\
+Dropout                  &                         &                           \\
+Class capsules           & Number of types         & 5                         \\
+                         & Kernel size             & $1\cross 1$               \\
+                         & Stride                  & 1                         \\
+                         & Dimensionality          & $4\cross 4$               \\ \bottomrule
+\end{tabular}
+\caption[Layers of the matrix capsule network]{Layers of the matrix capsule network. Note that the matrix capsules include a $4\cross 4$ pose matrix as well as a logit representing the activation probability. As such they are comprised of 17 neurons each. Further note that only the size of the primary capsule kernels are given in pixels, while the others are given in whole capsules.}
+\label{tab:matrix-config}
+\end{table}
+
+\subsubsection{SNN}
+A very simple spiking neural network is used to facilitate supervised training with stochastic gradient descent and backpropagation. The SNN is a 2-layer network with only a hidden layer and an output layer, both made up of leaky integrate-and-fire neurons (cf. table \ref{tab:snn-config}).
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+Layer        & \multicolumn{2}{l}{Configuration} \\ \midrule
+Hidden layer & Number of neurons      & TODO     \\
+             & Neuron model           & LIF      \\
+Output layer & Number of neurons      & 5        \\
+             & Neuron model           & LIF      \\ \bottomrule
+\end{tabular}
+\caption[Layers of the spiking neural network]{Layers of the spiking neural network.}
+\label{tab:snn-config}
+\end{table}
 \section{Datasets}
 \section{Metrics}

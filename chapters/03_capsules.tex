@@ -45,7 +45,7 @@ Using a vector as capsule output allows the use of a powerful dynamic routing-by
 \end{align}
 If the scalar product is large, it induces top-down feedback, increasing the coupling coefficient between the two capsules by adding the agreement to the coupling logit $b_{ij}$ (cf. algorithm \ref{alg:routing-by-agreement}).
 \begin{algorithm}[H]
-\caption{Dynamic routing-by-agreement}\label{alg:routing-by-agreement}
+\caption[Dynamic routing-by-agreement]{Dynamic routing-by-agreement. Agreement between a lower capsule's vote and the higher capsule's current output is measured by their scalar product. The current output is a weighted average of the lower capsules' votes and updated each iteration.}\label{alg:routing-by-agreement}
 \begin{algorithmic}[1]
 \Procedure{Routing}{$\vb{\hat{u}}_{j|i},r,l$}
 \ForAll{$i \in \Omega_l$}
@@ -99,7 +99,7 @@ After the network has been trained, the decoder can be used to inspect the insta
 \caption[Instantiation parameters learned by a vector capsule network on MNIST]{Instantiation parameters learned by a vector capsule network on MNIST \cite{sabour2017dynamic}. The decoder of a trained vector capsule network is used to reconstruct an input image. By perturbing each dimension of the class capsule, sensible instantiation parameters are found to be encoded within the capsule. In this example the shown dimensions where incremented by $\num{.05}$ on the interval $[\num{-0.25}, \num{0.25}]$ around the base values. Note the continuous distribution of the parameters. This is similar to the latent space of variational auto-encoders \cite{kingma2013auto} }\label{fig:vector-capsules-parameters}
 \end{figure}\noindent
 Sabour et al. were able to demonstrate that a shallow network with only two capsule layers can already achieve good results in object recognition tasks and that the class capsules encode sensible instantiation parameters like the thickness of strokes in case of the MNIST\footnote{Available at \url{http://yann.lecun.com/exdb/mnist/}} dataset (cf. figure \ref{fig:vector-capsules-parameters}). The biological plausibility of vector capsules was further demonstrated by their ability to effectively explain-away regions of overlap so as to successfully segment highly overlapping objects.
-\section{Matrix Capsules with EM Routing}
+\section{Matrix Capsules with EM Routing}\label{sec:matrix-capsules}
 The most recent update on capsules came from Hinton et al. in 2018. They pointed out several shortcomings of vector capsules, that they intended to overcome, including \cite{hinton2018matrix}:
 \begin{enumerate}
     \item While routing based on agreement is motivated by an assumed parse tree like structure of grouped neurons in the human visual system \cite{hinton2000learning}, the choice to encode the probability that an object is present in the length of a capsule's output vector requires an unprincipled nonlinearity (cf. equation \ref{eq:squash}) that precludes the dynamic routing-by-agreement algorithm from minimizing a sensible objective function. This in turn reduces the overall biological plausibility of the vector capsules introduced by Sabour et al. in 2017.

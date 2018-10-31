@@ -150,7 +150,7 @@ The key idea behind the combination of these three types of layers is that essen
 \import{figures/}{AlexNet.pdf_tex}
 \caption[Illustration of a typical CNN architecture]{Illustration of a typical CNN architecture for object recognition. Note that the feature maps of the first convolutional layer extracted elementary features like edges. The last layer's neurons correspond to the trained classes, while the output neuron with the highest probability is picked as the network's prediction during inference (highlighted in red).}\label{fig:cnn-arch}
 \end{figure}\noindent
-\subsubsection{Training}
+\subsubsection{Training}\label{sec:training}
 For object recognition, the output of the final layers are the class probabilities. This is achieved by applying a normalizing activation function to the output of the last layer, such as the \emph{softmax} function. In case of the softmax function, the network's output $y_k\qty(\vb{x})$ for the class $k$ given input sample $\vb{x}$ thus becomes
 \begin{align}
     y_k\qty(\vb{x}) = \frac{\exp(a_k)}{\sum_{k'=1}^K \exp(a_{k'})}.
