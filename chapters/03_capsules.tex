@@ -130,7 +130,7 @@ Where in the last step the definition of covariance $\qty(\vb*{\sigma}_j)^2$ was
     \qty(\sigma_j^h)^2 = \sum_i p_i\qty(V_{ij}^h-\mu_j^h)^2 = \sum_i\frac{R_{ij} \qty(V_{ij}^h-\mu_j^h)^2}{\sum_i R_{ij}}
 \end{align}
 Finally the activation probability of the higher capsule $j$ can be computed as the logistic function applied to the difference of the activation costs.
-\begin{align}
+\begin{align}\label{eq:matrix-logistic}
     a_j &= \operatorname{logistic}\qty(\lambda\qty(\beta_a-\beta_u\sum_i R_{ij}-\sum_h cost_j^h))
 \end{align}
 The fixed costs (over the course of a forward pass) $\beta_a$ and $\beta_u$ can be learned discriminatively. Hinton et al. suggested using a fixed schedule for the inverse temperature parameter $\lambda$. $\lambda$ is called an inverse temperature based on the fact that the logistic function\label{foot:fermi-dirac} has the same \enquote{S} shape as the Fermi-Dirac (FD) distribution used in quantum statistics to describe the distribution of energy states in a fermionic ensemble. In a FD distribution, the inverse of the absolute temperature defines the steepness of the curve. Here, the use of $\lambda$ in the logistic function is analogous to the inverse of the temperature.
@@ -190,7 +190,7 @@ Matrix capsule networks include convolutional capsule layers. This is implemente
 \end{figure}\noindent
 For the final layer, there is again one fully connected capsule per class, like for the vector capsule networks (cf. figure \ref{fig:matrix-capsules}). However, the class capsules are connected differently. So as not to lose positional information, the coordinates of the center of the active capsule's receptive field on the grid are added to its vote matrix. By doing this, all the capsules of a type in the second to last layer share the same whole-part transformation matrix and at the same time pass information on their position to the final layer of class capsules. This technique is referred to as \emph{Coordinate Addition} by Hinton et al.
 A new loss function called \emph{spread loss} is introduced to train directly on the class capsules' activities, without any reconstruction.
-\begin{align}
+\begin{align}\label{eq:spread-loss}
     L_i &= \qty(\max(0,m-\qty(a_t-a_i)))^2
 \end{align}
 With $a_t$ the correct class activity. Compared to earlier versions of capsule networks, no effort is made to encourage the final layer of capsules to encode instantiation parameters useful for reconstructing a transformed version of the input image. Instead they are left to learn whatever increases their classification accuracy. Spread loss effectively penalizes activities that are further than the $margin$ from the target activity. The margin can be increased on a linear schedule during training so as to avoid the capsules from dying early. Hinton et al. were able to demonstrate that their matrix capsules could achieve similar performance to CNNs with fewer learnable weights and perform much better than vector capsules on more complex shape-recognition datasets like smallNORB \cite{lecun2004learning}. They are also more robust against adversarial attacks of the \emph{fast gradient sign method} than baseline CNNs and possibly generalize better to novel viewpoints, although the latter could not be conclusively shown.

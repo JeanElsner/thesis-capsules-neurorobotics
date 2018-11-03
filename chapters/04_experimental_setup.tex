@@ -25,7 +25,7 @@ The experiments are run on 4 different types of neural networks, that follow dif
     \item Convolutional matrix capsule layers as part of a 5-layer network.
     \item A shallow spiking neural network with a single hidden layer.
 \end{enumerate}
-The CNN, vector and matrix capsules are all implemented within the PyTorch \cite{paszke2017automatic} framework. This allows them to be trained using the same established optimization schemes. Spiking neural networks however require additional dynamics, that are not usually part of the typical tensor-based neural network software libraries. Therefore, the SNN used in the experiments is implemented on top of the recently released BindsNET, a python package that extends PyTorch with the neural dynamics necessary for spiking neural networks and biological learning algorithms like STDP \cite{2018arXiv180601423H}. The respective networks' topologies are determined largely by a mix of experience, published results on similar data as well as trial and error. However, due to the relative simplicity and low resolution of the used data, they are all shallow architectures, which makes it easier to draw conclusions about the used technology w.r.t their performance.
+The CNN, vector and matrix capsules are all implemented within the PyTorch \cite{paszke2017automatic} framework. This allows them to be trained using the same established optimization schemes. Spiking neural networks however require additional dynamics, that are not usually part of the typical tensor-based neural network software libraries. Therefore, the SNN used in the experiments is implemented on top of the recently released BindsNET \cite{2018arXiv180601423H}, a python package that extends PyTorch with the neural dynamics necessary for spiking neural networks and biological learning algorithms like STDP. The respective networks' topologies are determined largely by a mix of experience, published results on similar data as well as trial and error. However, due to the relative simplicity and low resolution of the used data, they are all shallow architectures, which makes it easier to draw conclusions about the used technology w.r.t their performance. Note that the following networks all include an input layer which is not explicitly listed. The input layer has always the same dimension as the input image.
 \subsubsection{CNN}
 As CNNs are generally well established a good network topology for the experiments could easily be found and comes down to a variation of a classical LeNet \cite{lecun1998gradient}. The network consists of 4 layers, with max pooling operations after each convolutional layer. For the exact network topology, see table \ref{tab:cnn-config}.
 \begin{table}[H]
@@ -75,7 +75,7 @@ Class capsules      & Number of types         & 5           \\
 \label{tab:vector-config}
 \end{table}
 \subsubsection{Matrix Capsules}
-There is only little research published on matrix capsules to draw from. For this reason, the network topology is exactly the same as the \enquote{small} configuration used by Hinton et al., which they used for image data of the same size as in these experiments. Nevertheless, training matrix capsules is quite challenging, as the gradient will often either vanish or the capsules won't learn at all. To prevent this from happening, capsule-aware versions of dropout and batch normalization are implemented (cf. section \ref{sec:training}). They differ from the regular implementation by considering the internal representation of matrix capsules ($4\cross 4$ pose matrices and $2D$ feature activity maps). By respectively deactivating or normalizing highly correlated groups of neurons, the network can be regularized during training \cite{hinton2012improving}. All of the capsule layers are convolutional and comprised of matrix capsules (cf. table \ref{tab:matrix-config}). Expectation-Maximization routing (cf. algorithm \ref{alg:em-routing}) is employed between all adjacent capsule layers. As with vector capsules, automatic generation of gradients for the routing algorithm is utilized to train the part-whole matrices and description costs discriminatively.
+There is only little research published on matrix capsules to draw from. For this reason, the network topology is exactly the same as the \enquote{small} configuration used by Hinton et al., which they used for image data of the same size as in these experiments. Nevertheless, training matrix capsules is quite challenging, as the gradient will often either vanish or the capsules won't learn at all. To prevent this from happening, capsule-aware versions of dropout and batch normalization are implemented (cf. section \ref{sec:training}). They differ from the regular implementation by considering the internal representation of matrix capsules ($4\cross 4$ pose matrices and $2D$ feature activity maps). By respectively deactivating or normalizing highly correlated groups of neurons, the network can be regularized during training \cite{hinton2012improving}. All of the capsule layers are convolutional and comprised of matrix capsules (cf. table \ref{tab:matrix-config}).
 \begin{table}[H]
 \centering
 \begin{tabular}{@{}lll@{}}
@@ -111,22 +111,69 @@ Class capsules           & Number of types         & 5                         \
 \end{tabular}
 \caption[Layers of the matrix capsule network]{Layers of the matrix capsule network. Note that the matrix capsules include a $4\cross 4$ pose matrix as well as a logit representing the activation probability. As such they are comprised of 17 neurons each. Further note that only the size of the primary capsule kernels are given in pixels, while the others are given in whole capsules.}
 \label{tab:matrix-config}
-\end{table}
-
+\end{table}\noindent
+Expectation-Maximization routing (cf. algorithm \ref{alg:em-routing}) is employed between all adjacent capsule layers. As with vector capsules, automatic generation of gradients for the operations used inside the routing algorithm is utilized to train the part-whole matrices and description costs discriminatively.
 \subsubsection{SNN}
-A very simple spiking neural network is used to facilitate supervised training with stochastic gradient descent and backpropagation. The SNN is a 2-layer network with only a hidden layer and an output layer, both made up of leaky integrate-and-fire neurons (cf. table \ref{tab:snn-config}).
+In order to achieve a similar performance and allow comparison with the other networks, the SNN is designed to facilitate training using stochastic gradient descent with backpropagation. Input images are rate-encoded by setting the firing rate of the spiking neurons in the input layer proportional to the pixel-intensities. The error signal during training is then calculated by applying a softmax to the average firing rates of the second fully connected layer (cf. table \ref{tab:snn-config}). Although this is only an approximation as the firing rate is not differentiable w.r.t the synaptic weights, this approach achieves better classification performance than STDP-based learning with the same network.
 \begin{table}[H]
 \centering
 \begin{tabular}{@{}lll@{}}
 \toprule
 Layer        & \multicolumn{2}{l}{Configuration} \\ \midrule
-Hidden layer & Number of neurons      & TODO     \\
+Fully connected layer 1 & Number of neurons      & TODO     \\
              & Neuron model           & LIF      \\
-Output layer & Number of neurons      & 5        \\
-             & Neuron model           & LIF      \\ \bottomrule
+Fully connected layer 2 & Number of neurons      & 5        \\
+             & Neuron model           & LIF      \\
+             & Activation function    & Softmax  \\ \bottomrule
 \end{tabular}
-\caption[Layers of the spiking neural network]{Layers of the spiking neural network.}
+\caption[Layers of the spiking neural network]{Layers of the spiking neural network. All of the neurons are modelled as leaky integrate-and-fire neurons. Only a single hidden layer is used due to the expressiveness of spiking neurons. The softmax in the final layer is only applied to the average firing rates during exposure to the input and assumes the role of a loss function.}
 \label{tab:snn-config}
+\end{table}\noindent
+Thanks to the BindsNET software package, spiking neural networks can be run on graphical processing units, same as the other network architectures. However, as there is no support for the automatic computation of gradients for networks of spiking neurons yet -- in BindsNET or any other framework -- the gradients have to be computed by hand and implemented directly. This somewhat limits the complexity of the available network's topology.
+\subsubsection{Hyperparameters}
+Because they have a huge influence over the respective network's performance, all the relevant hyperparameters are optimized in an exhaustive search. To this end, parameter candidates are arranged on a heuristically determined hypergrid with each axis corresponding to a hyperparameter. Each point on the hypergrid is trained and evaluated on a full object recognition dataset to find a good tuple of parameters (i.e. one that achieves high accuracy on a test set). The hyperparameters included in the search for the CNN, vector capsule and matrix capsule networks are explpained in table \ref{tab:pytorch-hypers} as they use the same optimization scheme. For the SNN hyperparameters, see table \ref{tab:bindsnet-hypers}.
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+Prameter           & Description                                                  \\ \midrule
+batch size         & Number of samples processed during a pass                     \\
+learning rate      & Size of the step taken during gradient descent               \\
+epochs             & Number of training epochs                                    \\
+routing iterations & Iterations of dynamic routing, only used in capsule networks \\ \bottomrule
+\end{tabular}
+\caption[Hyperparameter definitions of the convolutional, vector capsule and matrix capsule networks]{Hyperparameter definitions of the convolutional, vector capsule and matrix capsule networks. Note that not all the hyperparameters are used by all the network architectures.}
+\label{tab:pytorch-hypers}
 \end{table}
+
+% Please add the following required packages to your document preamble:
+% \usepackage{booktabs}
+% \usepackage{longtable}
+% Note: It may be necessary to compile the document several times to get a multi-page table to line up properly
+\begin{longtable}[c]{@{}ll@{}}
+\toprule
+Parameter      & Description                                                               \\* \midrule
+\endfirsthead
+%
+\endhead
+%
+\bottomrule
+\endfoot
+%
+\endlastfoot
+%
+hidden neurons & The number of neurons in the hidden layer                                 \\
+time           & Length of time in milliseconds input is generated during training \\
+learning rate  & Size of the step taken during gradient descent                            \\
+decay rate     & Rate the learning rate is decayed by the scheduler                        \\
+patience       & Number of intervals without progress before the scheduler                 \\
+               & decays the learning rate                                                  \\
+interval       & Size of an interval in number of samples processed                        \\
+epochs         & Number of training epochs                                                 \\* \bottomrule
+\caption[Hyperparameter definitions of the spiking neural network]{Hyperparameter definitions of the spiking neural network. Note that compared to common CNN schedulers, the learning rate can be decayed during an epoch.}
+\label{tab:bindsnet-hypers}
+\end{longtable}
+\subsubsection{Training}
+All of the networks are trained discriminatively by stochastic gradient descent (or a variation thereof) with backpropagation over several epochs. The CNN, vector and matrix capsules all employ the same optimization scheme. The scalar output of their final layer is used to compute spread loss (cf. equation \ref{eq:spread-loss}), which is minimized by PyTorch's implementation of the Adam algorithm \cite{kingma2014adam}. A scheduler is used, that decreases the learning rate by a factor of $\num{10}$ after each epoch of training, which doesn't increase accuracy on the training data. Additionally, the inverse temperature of the logistic function (cf. equation \ref{eq:matrix-logistic}) used in EM routing for the matrix capsules is adjusted on a linear schedule. The net result of this is that the sigmoidal shape of the logistic function becomes steeper over the epochs, effectively encouraging the routing to become more concise. The SNN on the other hand uses SGD computed based on the average firing rates of the output neurons with softmax as an error function. The inputs are generated by sampling for a set period of time from a poisson distribution with the firing rate proportional to the pixels' intensities. Because of the asynchronous nature of spiking neurons, only a single training sample can be viewed at a time, compared to the other networks, that process a batch of input samples in parallel. A similar scheduler is implemented to decrease the learning rate, but greater care has to be taken w.r.t choosing the scheduler's hyperparameters as the training is more susceptible to changes in learning rate than the Adam algorithm.
 \section{Datasets}
 \section{Metrics}
