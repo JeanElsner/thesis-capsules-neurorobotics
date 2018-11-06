@@ -241,7 +241,7 @@ Where the Laplace transform was used to find the solution of the linear differen
 \begin{align}
     I_\mathrm{pre}(t) = q\sum_i \delta\qty(t-t_{i,\mathrm{pre}}^{(f)})
 \end{align}
-This is known as a \emph{spike train}, with $t_{i,\mathrm{pre}}^{(f)}$ the firing times of the presynaptic neurons and $q$ the charge delivered with each spike. In addition to the presynpatic spike train, each neuron generates its own postsynaptic spike train. The firing times $t_{k,\mathrm{post}}^{(f)}$ are determined by the threshold $\vartheta$.
+This is known as a \emph{spike train}, with $t_{i,\mathrm{pre}}^{(f)}$ the firing times of the presynaptic neurons and $q$ the charge delivered with each spike. In addition to the presynaptic spike train, each neuron generates its own postsynaptic spike train. The firing times $t_{k,\mathrm{post}}^{(f)}$ are determined by the threshold $\vartheta$.
 \begin{align}
     u(t_{k,\mathrm{post}}^{(f)})=\vartheta
 \end{align}
@@ -286,7 +286,7 @@ However, training a network of spiking neurons discriminatively using gradient d
     \centering
 \def\svgwidth{\textwidth}
 \import{figures/}{spiketrain.pdf_tex}
-\caption[Presynaptic spike train, membrane potential and postsynaptic spike train of a LIF neuron]{Presynaptic spike train, membrane potential and postsynaptic spike train of a LIF neuron. The three plots are synchronous in time. A presynaptic spike adds a charge to the membrane potential that decays over time. Once the membrane potential reaches the threshold $\vartheta$, the neuron discharges, generating a postsynaptic spike and resetting to resting potential $u_\mathrm{rest}$. Note the discontinuity whenever a pre- or postsynaptic neuron fires.}\label{fig:spiketrain}
+\caption[Presynaptic spike train, membrane potential and postsynaptic spike train of a LIF neuron]{Presynaptic spike train, membrane potential and postsynaptic spike train of a LIF neuron. The three plots are synchronous in time. A presynaptic spike adds a charge to the membrane potential that decays over time. Once the membrane potential reaches the threshold $\vartheta$, the neuron discharges, generating a postsynaptic spike and resetting to resting potential $u_\mathrm{rest}$. Note the discontinuity whenever pre- or postsynaptic neurons fire.}\label{fig:spiketrain}
 \end{figure}\noindent
 Recently, deep spiking convolutional networks have been trained successfully using backpropagation by treating the discontinuities at spike times as noise i.e. approximating a smooth signal \cite{10.3389/fnins.2016.00508, panda2016unsupervised}. While all approaches to SNNs currently do not perform quite as well as CNNs on computer vision tasks, they are inherently computationally less expensive and could at the very least lead to power efficient hardware implementation in the form of neuromorphic systems (i.e. hardware implementations of neural circuitry in silico that allow for fast and direct computation on neural networks.) \cite{hopkins2018spiking}.
 \section{Limitations of Artificial Neural Networks}\label{section:limitations}
